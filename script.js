@@ -1,5 +1,5 @@
 // ====== HỆ THỐNG MÔ PHỎNG DÒNG CHẢY NÂNG CAO ======
-// PHIÊN BẢN HOÀN CHỈNH - EDIT MODE + SMART ANIMATION
+// PHIÊN BẢN ĐÃ SỬA LỖI - HOÀN CHỈNH
 
 class AdvancedFlowSimulation {
     constructor() {
@@ -34,18 +34,20 @@ class AdvancedFlowSimulation {
     setupEventListeners() {
         console.log("🔧 Đang thiết lập event listeners...");
         
-        // UPLOAD EVENTS
+        // UPLOAD EVENTS - SỬA LỖI
         const backgroundUpload = document.getElementById('backgroundUpload');
         const gifUpload = document.getElementById('gifUpload');
         
         if (backgroundUpload) {
             backgroundUpload.addEventListener('change', (e) => {
+                console.log("📁 Background upload triggered");
                 this.handleFileUpload(e, 'image');
             });
         }
         
         if (gifUpload) {
             gifUpload.addEventListener('change', (e) => {
+                console.log("🎞️ GIF upload triggered");
                 this.handleFileUpload(e, 'gif');
             });
         }
@@ -92,7 +94,7 @@ class AdvancedFlowSimulation {
             });
         });
 
-        // Drag and drop
+        // Drag and drop - SỬA LỖI
         this.setupDragAndDrop();
     }
 
@@ -344,7 +346,261 @@ class AdvancedFlowSimulation {
         return colors[material] || colors.water;
     }
 
-    // ====== SMART ANIMATION SYSTEM ======
+    // ====== FILE UPLOAD SYSTEM - SỬA LỖI ======
+    handleFileUpload(event, type) {
+        console.log("📁 Handling file upload:", type);
+        const file = event.target.files[0];
+        
+        if (!file) {
+            console.log("❌ No file selected");
+            return;
+        }
+
+        console.log("✅ File selected:", file.name, file.type, file.size);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            console.log("📖 File read successfully");
+            if (type === 'image' || type === 'gif') {
+                this.loadBackgroundImage(e.target.result, file.name);
+            }
+        };
+        
+        reader.onerror = (e) => {
+            console.error("❌ File read error:", e);
+            alert("Lỗi đọc file: " + e.target.error);
+        };
+        
+        reader.readAsDataURL(file);
+    }
+
+    loadBackgroundImage(dataUrl, fileName) {
+        console.log("🖼️ Loading background image:", fileName);
+        
+        this.backgroundImage = new Image();
+        this.backgroundImage.onload = () => {
+            console.log("✅ Background image loaded successfully");
+            this.redrawCanvas();
+            this.updateStatus(`✅ Đã tải: ${fileName}`, false);
+            this.showPreview(this.backgroundImage);
+        };
+        
+        this.backgroundImage.onerror = (e) => {
+            console.error("❌ Image load error:", e);
+            alert("Lỗi tải ảnh! Vui lòng thử file khác.");
+        };
+        
+        this.backgroundImage.src = dataUrl;
+    }
+
+    showPreview(image) {
+        const preview = document.getElementById('uploadPreview');
+        if (preview) {
+            preview.innerHTML = `
+                <div style="text-align: center;">
+                    <img src="${image.src}" class="preview-image" alt="Preview" style="max-width: 100%; max-height: 150px; border-radius: 8px;">
+                    <div style="margin-top: 8px; font-size: 12px; color: #27ae60;">
+                        ✅ Đã tải thành công
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    setupDragAndDrop() {
+        this.canvas.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            this.canvas.style.border = '3px dashed #3498db';
+        });
+        
+        this.canvas.addEventListener('dragleave', () => {
+            this.canvas.style.border = 'none';
+        });
+        
+        this.canvas.addEventListener('drop', (e) => {
+            e.preventDefault();
+            this.canvas.style.border = 'none';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    console.log("📁 File dropped:", file.name);
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.loadBackgroundImage(e.target.result, file.name);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+    }
+
+    // ====== DRAWING SYSTEM ======
+    startDrawing(e) {
+        if (!this.backgroundImage) {
+            alert('Vui lòng upload bản vẽ trước khi vẽ đường dẫn!');
+            return;
+        }
+        
+        this.isDrawing = true;
+        const point = this.getMousePos(e);
+        this.paths.push({
+            points: [point],
+            color: this.getToolColor(),
+            width: this.brushSize,
+            tool: this.currentTool,
+            material: this.currentMaterial
+        });
+        this.draw(e);
+    }
+
+    draw(e) {
+        if (!this.isDrawing) return;
+        
+        const point = this.getMousePos(e);
+        const currentPath = this.paths[this.paths.length - 1];
+        currentPath.points.push(point);
+        
+        this.ctx.strokeStyle = currentPath.color;
+        this.ctx.lineWidth = currentPath.width;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        
+        const points = currentPath.points;
+        this.ctx.beginPath();
+        this.ctx.moveTo(points[points.length - 2].x, points[points.length - 2].y);
+        this.ctx.lineTo(point.x, point.y);
+        this.ctx.stroke();
+
+        this.updateStats();
+    }
+
+    stopDrawing() {
+        this.isDrawing = false;
+    }
+
+    clearDrawing() {
+        this.paths = [];
+        this.particles = [];
+        this.redrawCanvas();
+        this.updateStats();
+        this.updateStatus('Đã xóa toàn bộ đường vẽ', false);
+    }
+
+    getMousePos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    }
+
+    redrawCanvas() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        if (this.backgroundImage) {
+            this.ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.width, this.canvas.height);
+        }
+        
+        this.paths.forEach(path => {
+            this.ctx.strokeStyle = path.color;
+            this.ctx.lineWidth = path.width;
+            this.ctx.lineCap = 'round';
+            this.ctx.lineJoin = 'round';
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(path.points[0].x, path.points[0].y);
+            
+            for (let i = 1; i < path.points.length; i++) {
+                this.ctx.lineTo(path.points[i].x, path.points[i].y);
+            }
+            
+            this.ctx.stroke();
+        });
+    }
+
+    // ====== TOOL METHODS ======
+    setTool(tool) {
+        this.currentTool = tool;
+        this.updateStatus(`Công cụ: ${this.getToolName(tool)}`, false);
+    }
+
+    getToolName(tool) {
+        const names = {
+            'brush': 'BRUSH',
+            'pen': 'PEN', 
+            'eraser': 'XÓA'
+        };
+        return names[tool] || 'BRUSH';
+    }
+
+    getToolColor() {
+        switch(this.currentTool) {
+            case 'brush': return 'rgba(52, 152, 219, 0.8)';
+            case 'pen': return 'rgba(231, 76, 60, 0.9)';
+            case 'eraser': return 'rgba(236, 240, 241, 1)';
+            default: return 'rgba(52, 152, 219, 0.8)';
+        }
+    }
+
+    updateBrushSize() {
+        this.brushSize = document.getElementById('toolSize').value;
+        document.getElementById('toolSizeValue').textContent = this.brushSize + 'px';
+    }
+
+    // ====== MATERIAL METHODS ======
+    setMaterial(material) {
+        this.currentMaterial = material;
+        
+        document.querySelectorAll('.material-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        document.querySelector(`[data-material="${material}"]`).classList.add('active');
+        
+        this.updateStatus(`Nguyên liệu: ${this.getMaterialName(material)}`, false);
+        document.getElementById('materialText').textContent = `Nguyên liệu: ${this.getMaterialName(material)}`;
+    }
+
+    getMaterialName(material) {
+        const names = {
+            'water': 'NƯỚC',
+            'wheat': 'LÚA MÌ',
+            'sand': 'CÁT',
+            'grains': 'HẠT'
+        };
+        return names[material] || 'NƯỚC';
+    }
+
+    getParticleProperties(material) {
+        const properties = {
+            'water': { color: 'rgba(52, 152, 219, 0.7)', size: [2, 4] },
+            'wheat': { color: 'rgba(241, 196, 15, 0.8)', size: [3, 5] },
+            'sand': { color: 'rgba(210, 180, 140, 0.8)', size: [2, 3] },
+            'grains': { color: 'rgba(230, 126, 34, 0.8)', size: [4, 6] }
+        };
+        return properties[material] || properties.water;
+    }
+
+    // ====== SIMULATION METHODS ======
+    startSimulation() {
+        if (this.paths.length === 0) {
+            alert('Vui lòng vẽ đường dẫn trước khi chạy mô phỏng!');
+            return;
+        }
+        
+        if (this.simulationRunning) return;
+        
+        this.simulationRunning = true;
+        this.updateStatus('ĐANG CHẠY MÔ PHỎNG...', true);
+        this.createSmartParticles();
+    }
+
+    stopSimulation() {
+        this.simulationRunning = false;
+        this.updateStatus('ĐÃ DỪNG MÔ PHỎNG', false);
+    }
+
     createSmartParticles() {
         this.particles = [];
         
@@ -357,7 +613,6 @@ class AdvancedFlowSimulation {
         });
         
         this.updateStats();
-        console.log(`🎯 Đã tạo ${this.particles.length} hạt thông minh`);
     }
 
     createParticlesForPath(path, props, pathId) {
@@ -528,234 +783,6 @@ class AdvancedFlowSimulation {
         particle.originalSize = particle.size;
     }
 
-    // ====== CORE METHODS ======
-    handleFileUpload(event, type) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.loadBackgroundImage(e.target.result, file.name);
-        };
-        reader.readAsDataURL(file);
-    }
-
-    loadBackgroundImage(dataUrl, fileName) {
-        this.backgroundImage = new Image();
-        this.backgroundImage.onload = () => {
-            this.redrawCanvas();
-            this.updateStatus(`✅ Đã tải: ${fileName}`, false);
-            this.showPreview(this.backgroundImage);
-        };
-        this.backgroundImage.onerror = () => {
-            alert("Lỗi tải ảnh! Vui lòng thử file khác.");
-        };
-        this.backgroundImage.src = dataUrl;
-    }
-
-    showPreview(image) {
-        const preview = document.getElementById('uploadPreview');
-        if (preview) {
-            preview.innerHTML = `
-                <div style="text-align: center;">
-                    <img src="${image.src}" class="preview-image" alt="Preview" style="max-width: 100%; max-height: 150px; border-radius: 8px;">
-                    <div style="margin-top: 8px; font-size: 12px; color: #27ae60;">
-                        ✅ Đã tải thành công
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    setupDragAndDrop() {
-        this.canvas.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            this.canvas.style.border = '3px dashed #3498db';
-        });
-        
-        this.canvas.addEventListener('dragleave', () => {
-            this.canvas.style.border = 'none';
-        });
-        
-        this.canvas.addEventListener('drop', (e) => {
-            e.preventDefault();
-            this.canvas.style.border = 'none';
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                const file = files[0];
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.loadBackgroundImage(e.target.result, file.name);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
-        });
-    }
-
-    startDrawing(e) {
-        if (!this.backgroundImage) {
-            alert('Vui lòng upload bản vẽ trước khi vẽ đường dẫn!');
-            return;
-        }
-        
-        this.isDrawing = true;
-        const point = this.getMousePos(e);
-        this.paths.push({
-            points: [point],
-            color: this.getToolColor(),
-            width: this.brushSize,
-            tool: this.currentTool,
-            material: this.currentMaterial
-        });
-        this.draw(e);
-    }
-
-    draw(e) {
-        if (!this.isDrawing) return;
-        
-        const point = this.getMousePos(e);
-        const currentPath = this.paths[this.paths.length - 1];
-        currentPath.points.push(point);
-        
-        this.ctx.strokeStyle = currentPath.color;
-        this.ctx.lineWidth = currentPath.width;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-        
-        const points = currentPath.points;
-        this.ctx.beginPath();
-        this.ctx.moveTo(points[points.length - 2].x, points[points.length - 2].y);
-        this.ctx.lineTo(point.x, point.y);
-        this.ctx.stroke();
-
-        this.updateStats();
-    }
-
-    stopDrawing() {
-        this.isDrawing = false;
-    }
-
-    clearDrawing() {
-        this.paths = [];
-        this.particles = [];
-        this.redrawCanvas();
-        this.updateStats();
-        this.updateStatus('Đã xóa toàn bộ đường vẽ', false);
-    }
-
-    getMousePos(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        };
-    }
-
-    redrawCanvas() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        if (this.backgroundImage) {
-            this.ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.width, this.canvas.height);
-        }
-        
-        this.paths.forEach(path => {
-            this.ctx.strokeStyle = path.color;
-            this.ctx.lineWidth = path.width;
-            this.ctx.lineCap = 'round';
-            this.ctx.lineJoin = 'round';
-            
-            this.ctx.beginPath();
-            this.ctx.moveTo(path.points[0].x, path.points[0].y);
-            
-            for (let i = 1; i < path.points.length; i++) {
-                this.ctx.lineTo(path.points[i].x, path.points[i].y);
-            }
-            
-            this.ctx.stroke();
-        });
-    }
-
-    setTool(tool) {
-        this.currentTool = tool;
-        this.updateStatus(`Công cụ: ${this.getToolName(tool)}`, false);
-    }
-
-    getToolName(tool) {
-        const names = {
-            'brush': 'BRUSH',
-            'pen': 'PEN', 
-            'eraser': 'XÓA'
-        };
-        return names[tool] || 'BRUSH';
-    }
-
-    getToolColor() {
-        switch(this.currentTool) {
-            case 'brush': return 'rgba(52, 152, 219, 0.8)';
-            case 'pen': return 'rgba(231, 76, 60, 0.9)';
-            case 'eraser': return 'rgba(236, 240, 241, 1)';
-            default: return 'rgba(52, 152, 219, 0.8)';
-        }
-    }
-
-    updateBrushSize() {
-        this.brushSize = document.getElementById('toolSize').value;
-        document.getElementById('toolSizeValue').textContent = this.brushSize + 'px';
-    }
-
-    setMaterial(material) {
-        this.currentMaterial = material;
-        
-        document.querySelectorAll('.material-card').forEach(card => {
-            card.classList.remove('active');
-        });
-        document.querySelector(`[data-material="${material}"]`).classList.add('active');
-        
-        this.updateStatus(`Nguyên liệu: ${this.getMaterialName(material)}`, false);
-        document.getElementById('materialText').textContent = `Nguyên liệu: ${this.getMaterialName(material)}`;
-    }
-
-    getMaterialName(material) {
-        const names = {
-            'water': 'NƯỚC',
-            'wheat': 'LÚA MÌ',
-            'sand': 'CÁT',
-            'grains': 'HẠT'
-        };
-        return names[material] || 'NƯỚC';
-    }
-
-    getParticleProperties(material) {
-        const properties = {
-            'water': { color: 'rgba(52, 152, 219, 0.7)', size: [2, 4] },
-            'wheat': { color: 'rgba(241, 196, 15, 0.8)', size: [3, 5] },
-            'sand': { color: 'rgba(210, 180, 140, 0.8)', size: [2, 3] },
-            'grains': { color: 'rgba(230, 126, 34, 0.8)', size: [4, 6] }
-        };
-        return properties[material] || properties.water;
-    }
-
-    startSimulation() {
-        if (this.paths.length === 0) {
-            alert('Vui lòng vẽ đường dẫn trước khi chạy mô phỏng!');
-            return;
-        }
-        
-        if (this.simulationRunning) return;
-        
-        this.simulationRunning = true;
-        this.updateStatus('ĐANG CHẠY MÔ PHỎNG THÔNG MINH...', true);
-        this.createSmartParticles();
-    }
-
-    stopSimulation() {
-        this.simulationRunning = false;
-        this.updateStatus('ĐÃ DỪNG MÔ PHỎNG', false);
-    }
-
     drawParticles() {
         this.particles.forEach(particle => {
             this.ctx.beginPath();
@@ -765,6 +792,7 @@ class AdvancedFlowSimulation {
         });
     }
 
+    // ====== ANIMATION LOOP ======
     animate() {
         if (this.backgroundImage) {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -781,6 +809,7 @@ class AdvancedFlowSimulation {
         requestAnimationFrame(() => this.animate());
     }
 
+    // ====== UI METHODS ======
     updateUI() {
         this.updateBrushSize();
         this.updatePhysics();
