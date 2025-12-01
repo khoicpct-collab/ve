@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Dòng chảy Thông minh</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 MÔ PHỎNG DÒNG CHẢY THÔNG MINH</h1>
+            <p>Upload bản vẽ → Vẽ đường dẫn → Chọn nguyên liệu → Chạy mô phỏng</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Left Sidebar - Main Tools -->
+            <div class="sidebar">
+                <!-- Upload Section -->
+                <div class="tool-section">
+                    <div class="section-title">📁 UPLOAD BẢN VẼ</div>
+                    <div class="upload-options">
+                        <div class="upload-option">
+                            <input type="file" id="backgroundUpload" class="file-upload" accept="image/*">
+                            <label for="backgroundUpload" class="upload-btn">
+                                <span>🖼️</span>
+                                <div>Ảnh Nền</div>
+                                <small>PNG, JPG, GIF</small>
+                            </label>
+                        </div>
+                        
+                        <div class="upload-option">
+                            <input type="file" id="gifUpload" class="file-upload" accept=".gif">
+                            <label for="gifUpload" class="upload-btn">
+                                <span>🎞️</span>
+                                <div>GIF Animation</div>
+                                <small>File GIF</small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-preview" id="uploadPreview">
+                        <div class="preview-placeholder">
+                            <span>📁</span>
+                            <div>Chưa có file nào được tải</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Drawing Tools -->
+                <div class="tool-section">
+                    <div class="section-title">🎨 CÔNG CỤ VẼ</div>
+                    <div class="tool-buttons">
+                        <button class="btn btn-primary" id="brushTool">
+                            <span>🖌️</span> BRUSH
+                        </button>
+                        <button class="btn btn-primary" id="penTool">
+                            <span>✏️</span> PEN
+                        </button>
+                        <button class="btn btn-warning" id="eraserTool">
+                            <span>🧹</span> XÓA
+                        </button>
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span class="slider-label">Kích thước công cụ</span>
+                            <span class="slider-value" id="toolSizeValue">15px</span>
+                        </div>
+                        <input type="range" id="toolSize" min="1" max="100" value="15">
+                    </div>
+                </div>
+
+                <!-- Materials -->
+                <div class="tool-section">
+                    <div class="section-title">🌾 NGUYÊN LIỆU</div>
+                    <div class="material-grid">
+                        <div class="material-card active" data-material="water">
+                            <div class="material-icon">💧</div>
+                            <div class="material-name">NƯỚC</div>
+                            <div class="material-desc">Chảy mượt, trong suốt</div>
+                        </div>
+                        <div class="material-card" data-material="wheat">
+                            <div class="material-icon">🌾</div>
+                            <div class="material-name">LÚA MÌ</div>
+                            <div class="material-desc">Hạt nhỏ, màu vàng</div>
+                        </div>
+                        <div class="material-card" data-material="sand">
+                            <div class="material-icon">🟫</div>
+                            <div class="material-name">CÁT</div>
+                            <div class="material-desc">Hạt mịn, rơi nhanh</div>
+                        </div>
+                        <div class="material-card" data-material="grains">
+                            <div class="material-icon">🟨</div>
+                            <div class="material-name">HẠT</div>
+                            <div class="material-desc">Kích thước lớn</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Control -->
+                <div class="tool-section">
+                    <div class="section-title">🚀 ĐIỀU KHIỂN</div>
+                    <div class="tool-buttons">
+                        <button class="btn btn-success" id="startBtn">
+                            <span>▶️</span> CHẠY
+                        </button>
+                        <button class="btn btn-danger" id="stopBtn">
+                            <span>⏹️</span> DỪNG
+                        </button>
+                        <button class="btn btn-warning" id="clearBtn">
+                            <span>🗑️</span> XÓA
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="canvas-area">
+                <canvas id="simulationCanvas"></canvas>
+                <div class="canvas-overlay">
+                    <div class="status-info">
+                        <div class="status-dot" id="statusDot"></div>
+                        <div>
+                            <div id="statusText">SẴN SÀNG - UPLOAD BẢN VẼ ĐỂ BẮT ĐẦU</div>
+                            <div style="font-size: 12px; color: #7f8c8d;" id="materialText">Nguyên liệu: NƯỚC</div>
+                        </div>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span>🔴</span>
+                            <span id="particleCount">0</span> hạt
+                        </div>
+                        <div class="stat-item">
+                            <span>📐</span>
+                            <span id="pathLength">0</span> px
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Advanced Controls -->
+            <div class="right-panel">
+                <div class="tool-section">
+                    <div class="section-title">🎛️ CHUYỂN ĐỘNG</div>
+                    
+                    <div class="control-group">
+                        <div class="control-title">🔄 Kiểu chuyển động</div>
+                        <div class="motion-controls" style="justify-content: center; margin-bottom: 20px;">
+                            <button class="motion-btn active" data-motion="linear">→</button>
+                            <button class="motion-btn" data-motion="spiral">🌀</button>
+                            <button class="motion-btn" data-motion="wave">🌊</button>
+                            <button class="motion-btn" data-motion="pulse">💓</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-title">⚙️ VẬT LÝ</div>
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <span class="slider-label">Tốc độ</span>
+                                <span class="slider-value" id="speedValue">5</span>
+                            </div>
+                            <input type="range" id="speed" min="1" max="10" value="5">
+                        </div>
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <span class="slider-label">Trọng lực</span>
+                                <span class="slider-value" id="gravityValue">0.5</span>
+                            </div>
+                            <input type="range" id="gravity" min="0" max="2" step="0.1" value="0.5">
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-title">🎯 HƯỚNG</div>
+                        <div class="direction-controls">
+                            <button class="direction-btn active" data-direction="forward">↑ TIẾN</button>
+                            <button class="direction-btn" data-direction="backward">↓ LÙI</button>
+                            <button class="direction-btn" data-direction="vortex_cw">↻ XOÁY</button>
+                            <button class="direction-btn" data-direction="random">🎲 NGẪU NHIÊN</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    // ====== SMART ANIMATION SYSTEM ======
+    createSmartParticles() {
+        this.particles = [];
+        
+        this.paths.forEach((path, pathIndex) => {
+            if (path.tool === 'eraser') return;
+            
+            const material = path.material || this.currentMaterial;
+            const props = this.getParticleProperties(material);
+            
+            this.createParticlesForPath(path, props, pathIndex);
+        });
+        
+        this.updateStats();
+        console.log(`🎯 Đã tạo ${this.particles.length} hạt thông minh`);
+    }
+
+    createParticlesForPath(path, props, pathId) {
+        const points = path.points;
+        if (points.length < 2) return;
+        
+        // Tính tổng chiều dài đường
+        let totalLength = 0;
+        const segmentLengths = [];
+        
+        for (let i = 0; i < points.length - 1; i++) {
+            const length = this.calculateDistance(points[i], points[i + 1]);
+            segmentLengths.push(length);
+            totalLength += length;
+        }
+        
+        // Số hạt tỷ lệ với chiều dài đường
+        const particleCount = Math.max(5, Math.floor(totalLength / 10));
+        
+        for (let i = 0; i < particleCount; i++) {
+            const progress = i / particleCount;
+            const position = this.getPointAtProgress(points, progress, segmentLengths, totalLength);
+            
+            if (position) {
+                this.particles.push({
+                    x: position.x,
+                    y: position.y,
+                    vx: 0,
+                    vy: 0,
+                    size: Math.random() * (props.size[1] - props.size[0]) + props.size[0],
+                    color: props.color,
+                    pathId: pathId,
+                    progress: progress,
+                    speed: 0.01 + Math.random() * 0.02,
+                    life: 0.5 + Math.random() * 0.5,
+                    material: path.material || this.currentMaterial,
+                    originalSize: 0 // Sẽ set sau
+                });
+                
+                // Lưu kích thước gốc
+                this.particles[this.particles.length - 1].originalSize = 
+                    this.particles[this.particles.length - 1].size;
+            }
+        }
+    }
+
+    calculateDistance(point1, point2) {
+        return Math.sqrt(
+            Math.pow(point2.x - point1.x, 2) + 
+            Math.pow(point2.y - point1.y, 2)
+        );
+    }
+
+    getPointAtProgress(points, progress, segmentLengths, totalLength) {
+        if (points.length < 2) return null;
+        
+        const targetDistance = progress * totalLength;
+        let accumulated = 0;
+        
+        for (let i = 0; i < segmentLengths.length; i++) {
+            const segmentLength = segmentLengths[i];
+            
+            if (targetDistance <= accumulated + segmentLength) {
+                const segmentProgress = (targetDistance - accumulated) / segmentLength;
+                return {
+                    x: points[i].x + (points[i + 1].x - points[i].x) * segmentProgress,
+                    y: points[i].y + (points[i + 1].y - points[i].y) * segmentProgress
+                };
+            }
+            accumulated += segmentLength;
+        }
+        
+        return points[points.length - 1];
+    }
+
+    updateSmartParticles() {
+        this.particles.forEach(particle => {
+            // CẬP NHẬT TIẾN TRÌNH
+            particle.progress += particle.speed * (this.physics.speed / 8);
+            
+            if (particle.progress >= 1.0) {
+                particle.progress = 0; // Reset về đầu
+                particle.life = 0.5 + Math.random() * 0.5; // Reset life
+            }
+            
+            // CẬP NHẬT VỊ TRÍ THEO ĐƯỜNG
+            const path = this.paths[particle.pathId];
+            if (path && path.points.length >= 2) {
+                const segmentLengths = this.calculateSegmentLengths(path.points);
+                const totalLength = segmentLengths.reduce((a, b) => a + b, 0);
+                const newPos = this.getPointAtProgress(
+                    path.points, 
+                    particle.progress, 
+                    segmentLengths, 
+                    totalLength
+                );
+                
+                if (newPos) {
+                    particle.x = newPos.x;
+                    particle.y = newPos.y;
+                }
+            }
+            
+            // ÁP DỤNG CHUYỂN ĐỘNG & VẬT LÝ
+            this.applyAdvancedMotion(particle);
+            
+            // CẬP NHẬT VÒNG ĐỜI
+            particle.life -= 0.005;
+            if (particle.life <= 0) {
+                this.resetParticle(particle);
+            }
+        });
+    }
+
+    calculateSegmentLengths(points) {
+        const segmentLengths = [];
+        for (let i = 0; i < points.length - 1; i++) {
+            segmentLengths.push(this.calculateDistance(points[i], points[i + 1]));
+        }
+        return segmentLengths;
+    }
+
+    applyAdvancedMotion(particle) {
+        const time = Date.now() * 0.001;
+        
+        switch(this.currentMotion) {
+            case 'linear':
+                // Giữ nguyên - di chuyển theo đường
+                break;
+                
+            case 'spiral':
+                // Xoắn ốc quanh đường
+                const radius = 8 * Math.sin(time + particle.progress * Math.PI * 2);
+                particle.x += Math.cos(time + particle.progress * Math.PI * 4) * radius * 0.1;
+                particle.y += Math.sin(time + particle.progress * Math.PI * 4) * radius * 0.1;
+                break;
+                
+            case 'wave':
+                // Sóng
+                const wave = Math.sin(time * 2 + particle.progress * Math.PI * 6) * 6;
+                particle.y += wave * 0.1;
+                break;
+                
+            case 'pulse':
+                // Nhấp nháy kích thước
+                const pulse = Math.sin(time * 3 + particle.progress * Math.PI * 4) * 0.3 + 0.7;
+                particle.size = particle.originalSize * pulse;
+                break;
+        }
+        
+        this.applySmartDirection(particle);
+    }
+
+    applySmartDirection(particle) {
+        switch(this.currentDirection) {
+            case 'forward':
+                // Mặc định
+                break;
+                
+            case 'backward':
+                particle.progress -= particle.speed * (this.physics.speed / 8);
+                if (particle.progress < 0) particle.progress = 1;
+                break;
+                
+            case 'vortex_cw':
+                const vortexTime = Date.now() * 0.003;
+                const vortexRadius = 12;
+                particle.x += Math.cos(vortexTime + particle.progress * Math.PI * 2) * vortexRadius * 0.1;
+                particle.y += Math.sin(vortexTime + particle.progress * Math.PI * 2) * vortexRadius * 0.1;
+                break;
+                
+            case 'random':
+                particle.x += (Math.random() - 0.5) * 3;
+                particle.y += (Math.random() - 0.5) * 3;
+                break;
+        }
+        
+        // Áp dụng trọng lực
+        particle.vy += this.physics.gravity * 0.05;
+        particle.y += particle.vy;
+    }
+
+    resetParticle(particle) {
+        particle.progress = Math.random() * 0.2;
+        particle.life = 0.5 + Math.random() * 0.5;
+        particle.vy = 0;
+        const props = this.getParticleProperties(particle.material);
+        particle.size = props.size[0] + Math.random() * (props.size[1] - props.size[0]);
+        particle.originalSize = particle.size;
+    }
+</body>
+</html>
