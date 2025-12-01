@@ -456,3 +456,77 @@ input[type="range"]::-webkit-slider-thumb {
         display: none;
     }
 }
+/* Edit Controls */
+.edit-controls {
+    position: absolute;
+    top: 150px;
+    right: 30px;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 1000;
+    border: 3px solid #3498db;
+    min-width: 200px;
+    font-family: Arial, sans-serif;
+}
+
+.edit-controls button {
+    width: 100%;
+    margin: 8px 0;
+    padding: 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.edit-controls .btn-danger {
+    background: #e74c3c;
+    color: white;
+}
+
+.edit-controls .btn-success {
+    background: #27ae60;
+    color: white;
+}
+
+.edit-controls .btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.edit-controls button:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+/* Đảm bảo canvas-area có position relative */
+.canvas-area {
+    position: relative;
+}
+
+/* Fix responsive issues */
+@media (max-width: 1200px) {
+    .main-content {
+        grid-template-columns: 320px 1fr;
+    }
+    .right-panel {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+    .sidebar, .right-panel {
+        display: none;
+    }
+    .container {
+        height: auto;
+        min-height: 100vh;
+    }
+}
