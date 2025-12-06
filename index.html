@@ -1,14 +1,457 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/ve/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Flow Simulator - Demo</title>
-    <script type="module" crossorigin src="/ve/assets/index-abcd1234.js"></script>
-    <link rel="stylesheet" href="/ve/assets/index-5678abcd.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 FlowSim AI Studio - Smart Material Motion</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ffmpeg.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/gif.js"></script>
+</head>
+<body>
+    <!-- AI Loading Screen -->
+    <div id="ai-loading">
+        <div class="ai-spinner">
+            <div class="brain-pulse"></div>
+            <h2>🤖 AI Engine Initializing...</h2>
+            <p>Loading neural networks for smart motion generation</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container">
+        <!-- AI Assistant Bar -->
+        <div class="ai-assistant">
+            <div class="ai-message">
+                <span class="ai-avatar">🤖</span>
+                <div class="ai-text">
+                    <strong>AI Assistant:</strong> 
+                    <span id="ai-suggestion">Drag and drop an image to start, or let me suggest smart motion paths!</span>
+                </div>
+            </div>
+            <button class="btn-ai-suggest" onclick="aiSuggestMotion()">
+                <i class="fas fa-magic"></i> AI Suggest Motion
+            </button>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Left Panel - Upload & AI Tools -->
+            <div class="left-panel">
+                <!-- Smart Upload Zone -->
+                <div class="upload-zone" id="dropZone">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Drop Images Here</h3>
+                        <p>Supports JPG, PNG, GIF, WEBP</p>
+                        <input type="file" id="fileUpload" multiple accept="image/*,video/*" hidden>
+                        <button class="btn-upload" onclick="document.getElementById('fileUpload').click()">
+                            <i class="fas fa-folder-open"></i> Browse Files
+                        </button>
+                    </div>
+                    <div class="upload-preview" id="uploadPreview"></div>
+                </div>
+
+                <!-- AI Motion Presets -->
+                <div class="ai-presets">
+                    <h3><i class="fas fa-brain"></i> AI Motion Presets</h3>
+                    <div class="preset-grid">
+                        <div class="preset-card" data-preset="flow" onclick="applyAIPreset('flow')">
+                            <div class="preset-icon">🌊</div>
+                            <span>Fluid Flow</span>
+                        </div>
+                        <div class="preset-card" data-preset="bounce" onclick="applyAIPreset('bounce')">
+                            <div class="preset-icon">🏀</div>
+                            <span>Bouncing Ball</span>
+                        </div>
+                        <div class="preset-card" data-preset="swirl" onclick="applyAIPreset('swirl')">
+                            <div class="preset-icon">🌀</div>
+                            <span>Swirl Effect</span>
+                        </div>
+                        <div class="preset-card" data-preset="gravity" onclick="applyAIPreset('gravity')">
+                            <div class="preset-icon">⬇️</div>
+                            <span>Gravity Fall</span>
+                        </div>
+                        <div class="preset-card" data-preset="explode" onclick="applyAIPreset('explode')">
+                            <div class="preset-icon">💥</div>
+                            <span>Explosion</span>
+                        </div>
+                        <div class="preset-card" data-preset="custom" onclick="applyAIPreset('custom')">
+                            <div class="preset-icon">🎨</div>
+                            <span>Custom AI</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Material Properties with AI -->
+                <div class="material-properties">
+                    <h3><i class="fas fa-sliders-h"></i> Smart Properties</h3>
+                    <div class="property" data-ai-tip="Click for AI optimization">
+                        <label>Physics Type:</label>
+                        <select id="physicsType" onchange="aiOptimizePhysics()">
+                            <option value="rigid">Rigid Body</option>
+                            <option value="fluid">Fluid Simulation</option>
+                            <option value="soft">Soft Body (Jelly)</option>
+                            <option value="granular">Granular (Sand)</option>
+                        </select>
+                        <button class="btn-ai-optimize" onclick="aiOptimizePhysics()">
+                            <i class="fas fa-bolt"></i> AI Optimize
+                        </button>
+                    </div>
+                    
+                    <div class="property">
+                        <label>Realism Level:</label>
+                        <div class="ai-slider-container">
+                            <input type="range" id="realismLevel" min="1" max="10" value="8">
+                            <span class="ai-badge">AI: High</span>
+                        </div>
+                    </div>
+
+                    <!-- 8-Direction Control -->
+                    <div class="direction-control">
+                        <h4><i class="fas fa-compass"></i> Motion Direction</h4>
+                        <div class="direction-grid">
+                            <button class="dir-btn" data-dir="nw" onclick="setDirection('nw')">↖️</button>
+                            <button class="dir-btn" data-dir="n" onclick="setDirection('n')">⬆️</button>
+                            <button class="dir-btn" data-dir="ne" onclick="setDirection('ne')">↗️</button>
+                            <button class="dir-btn" data-dir="w" onclick="setDirection('w')">⬅️</button>
+                            <button class="dir-btn center" onclick="aiSuggestDirection()">🎯</button>
+                            <button class="dir-btn" data-dir="e" onclick="setDirection('e')">➡️</button>
+                            <button class="dir-btn" data-dir="sw" onclick="setDirection('sw')">↙️</button>
+                            <button class="dir-btn" data-dir="s" onclick="setDirection('s')">⬇️</button>
+                            <button class="dir-btn" data-dir="se" onclick="setDirection('se')">↘️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel - Canvas & Editing -->
+            <div class="center-panel">
+                <!-- Smart Toolbar -->
+                <div class="smart-toolbar">
+                    <div class="tool-group">
+                        <button class="tool-btn active" data-tool="select" title="Smart Select (Ctrl+Q)">
+                            <i class="fas fa-mouse-pointer"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="draw" title="AI-Assisted Drawing">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="edit" title="Edit Points (PowerPoint++)">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="shape" title="Smart Shape Detection">
+                            <i class="fas fa-shapes"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="tool-group">
+                        <button class="tool-btn" onclick="aiAutoTrace()" title="AI Auto-Trace">
+                            <i class="fas fa-robot"></i> Auto-Trace
+                        </button>
+                        <button class="tool-btn" onclick="smoothPathAI()" title="AI Path Smoothing">
+                            <i class="fas fa-wave-square"></i> Smooth
+                        </button>
+                        <button class="tool-btn" onclick="optimizePathAI()" title="AI Path Optimization">
+                            <i class="fas fa-bolt"></i> Optimize
+                        </button>
+                    </div>
+
+                    <div class="ai-status">
+                        <div class="ai-indicator active"></div>
+                        <span>AI Ready</span>
+                    </div>
+                </div>
+
+                <!-- Main Canvas -->
+                <div class="canvas-container">
+                    <canvas id="mainCanvas"></canvas>
+                    <canvas id="editCanvas" style="display: none;"></canvas>
+                    
+                    <!-- AI Overlay Guides -->
+                    <div class="ai-overlay">
+                        <div class="guide-line" id="guideHorizontal"></div>
+                        <div class="guide-line" id="guideVertical"></div>
+                        <div class="magnetic-point" id="magneticPoint"></div>
+                    </div>
+
+                    <!-- Edit Points (PowerPoint Style) -->
+                    <div class="edit-points-container" id="editPoints"></div>
+                </div>
+
+                <!-- Timeline with AI Suggestions -->
+                <div class="timeline-controls">
+                    <div class="timeline">
+                        <input type="range" id="timeline" min="0" max="100" value="0">
+                        <div class="keyframes" id="keyframes"></div>
+                        <div class="ai-suggestions" id="aiKeyframes">
+                            <div class="ai-keyframe" style="left: 25%" title="AI Suggestion: Ease In"></div>
+                            <div class="ai-keyframe" style="left: 75%" title="AI Suggestion: Ease Out"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="playback-controls">
+                        <button class="btn-play" onclick="playAnimation()">
+                            <i class="fas fa-play"></i> Play
+                        </button>
+                        <button class="btn-pause" onclick="pauseAnimation()">
+                            <i class="fas fa-pause"></i> Pause
+                        </button>
+                        <button class="btn-loop" onclick="toggleLoop()">
+                            <i class="fas fa-redo"></i> Loop
+                        </button>
+                        <div class="speed-control">
+                            <span>Speed:</span>
+                            <input type="range" id="speed" min="0.1" max="3" step="0.1" value="1">
+                            <span id="speedValue">1.0x</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Export & AI Analysis -->
+            <div class="right-panel">
+                <!-- AI Motion Analysis -->
+                <div class="ai-analysis">
+                    <h3><i class="fas fa-chart-line"></i> AI Motion Analysis</h3>
+                    <div class="analysis-metrics">
+                        <div class="metric">
+                            <span class="metric-label">Realism Score</span>
+                            <div class="metric-value">
+                                <div class="score-bar">
+                                    <div class="score-fill" style="width: 85%"></div>
+                                </div>
+                                <span>85%</span>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Fluid Dynamics</span>
+                            <div class="metric-value">
+                                <div class="score-bar">
+                                    <div class="score-fill" style="width: 92%"></div>
+                                </div>
+                                <span>92%</span>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Path Efficiency</span>
+                            <div class="metric-value">
+                                <div class="score-bar">
+                                    <div class="score-fill" style="width: 78%"></div>
+                                </div>
+                                <span>78%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-ai-analyze" onclick="analyzeMotionAI()">
+                        <i class="fas fa-search"></i> Deep Motion Analysis
+                    </button>
+                </div>
+
+                <!-- Smart Export -->
+                <div class="smart-export">
+                    <h3><i class="fas fa-file-export"></i> Smart Export</h3>
+                    
+                    <div class="export-options">
+                        <div class="export-option active" data-format="gif">
+                            <i class="fas fa-film"></i>
+                            <div>
+                                <strong>Animated GIF</strong>
+                                <small>High quality, web optimized</small>
+                            </div>
+                            <button class="btn-export" onclick="exportGIF()">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="export-option" data-format="mp4">
+                            <i class="fas fa-video"></i>
+                            <div>
+                                <strong>MP4 Video</strong>
+                                <small>HD quality, sound support</small>
+                            </div>
+                            <button class="btn-export" onclick="exportMP4()">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="export-option" data-format="sequence">
+                            <i class="fas fa-layer-group"></i>
+                            <div>
+                                <strong>Frame Sequence</strong>
+                                <small>PNG frames, professional use</small>
+                            </div>
+                            <button class="btn-export" onclick="exportSequence()">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="export-settings">
+                        <h4>AI Export Settings</h4>
+                        <div class="setting">
+                            <label>Quality Optimization:</label>
+                            <select id="exportQuality">
+                                <option value="optimized">AI Optimized (Recommended)</option>
+                                <option value="high">High Quality</option>
+                                <option value="balanced">Balanced</option>
+                                <option value="small">Small File Size</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting">
+                            <label>Duration:</label>
+                            <div class="duration-control">
+                                <input type="range" id="exportDuration" min="1" max="30" value="5">
+                                <span id="durationValue">5 seconds</span>
+                            </div>
+                        </div>
+
+                        <div class="ai-export-tip">
+                            <i class="fas fa-lightbulb"></i>
+                            <span>AI Tip: 5-10 seconds is optimal for social media</span>
+                        </div>
+                    </div>
+
+                    <!-- Hidden Export Processing -->
+                    <div class="export-processing" id="exportProcessing">
+                        <div class="processing-spinner"></div>
+                        <p>AI is optimizing your export...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="exportProgress"></div>
+                        </div>
+                    </div>
+
+                    <!-- Export Preview -->
+                    <div class="export-preview" id="exportPreview">
+                        <h4>Preview</h4>
+                        <div class="preview-container">
+                            <img id="gifPreview" alt="GIF Preview">
+                            <video id="videoPreview" controls style="display: none;"></video>
+                        </div>
+                        <div class="preview-info">
+                            <span id="fileSize">File size: --</span>
+                            <span id="dimensions">Dimensions: --</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Tips & Suggestions -->
+                <div class="ai-tips">
+                    <h3><i class="fas fa-robot"></i> AI Pro Tips</h3>
+                    <div class="tips-container">
+                        <div class="tip">
+                            <i class="fas fa-magic"></i>
+                            <p>Use <strong>AI Auto-Trace</strong> for complex shapes</p>
+                        </div>
+                        <div class="tip">
+                            <i class="fas fa-bolt"></i>
+                            <p>Try <strong>Fluid Simulation</strong> for liquid effects</p>
+                        </div>
+                        <div class="tip">
+                            <i class="fas fa-chart-line"></i>
+                            <p>Check <strong>Motion Analysis</strong> for realism scores</p>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-more-tips" onclick="showMoreAITips()">
+                        <i class="fas fa-brain"></i> More AI Tips
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <div class="status-item">
+                    <i class="fas fa-microchip"></i>
+                    <span>AI Engine: <strong>Active</strong></span>
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-shapes"></i>
+                    <span>Shapes: <span id="shapeCount">0</span></span>
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>Paths: <span id="pathCount">0</span></span>
+                </div>
+            </div>
+            
+            <div class="status-center">
+                <div class="ai-thinking" id="aiThinking">
+                    <div class="thinking-dots"></div>
+                    <span>AI is thinking...</span>
+                </div>
+            </div>
+            
+            <div class="status-right">
+                <div class="status-item">
+                    <i class="fas fa-memory"></i>
+                    <span>VRAM: <span id="vramUsage">2.1GB</span></span>
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>FPS: <span id="fpsCounter">60</span></span>
+                </div>
+                <button class="btn-performance" onclick="togglePerformanceMode()">
+                    <i class="fas fa-rocket"></i> Performance Mode
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="physics-engine.js"></script>
+    <script src="ai-path-generator.js"></script>
+    <script src="smart-exporter.js"></script>
+    <script src="advanced-editor.js"></script>
+    <script src="material-scanner.js"></script>
+    
+    <!-- Main App Script -->
+    <script>
+        // Initialize AI Studio
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 FlowSim AI Studio - Initializing...');
+            
+            // Hide loading screen after AI loads
+            setTimeout(() => {
+                document.getElementById('ai-loading').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('ai-loading').style.display = 'none';
+                    document.querySelector('.app-container').style.opacity = '1';
+                    
+                    // Show welcome message
+                    showAINotification('🤖 Welcome to FlowSim AI Studio! I\'m ready to help you create amazing motion graphics.');
+                }, 500);
+            }, 2000);
+            
+            // Initialize modules
+            await initializeAIEngine();
+            initializeCanvas();
+            setupDragAndDrop();
+            startPerformanceMonitor();
+        });
+
+        // Show AI notification
+        function showAINotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'ai-notification';
+            notification.innerHTML = `
+                <div class="ai-notification-content">
+                    <span class="ai-avatar">🤖</span>
+                    <p>${message}</p>
+                    <button class="btn-close-notif" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.remove(), 5000);
+        }
+    </script>
+</body>
 </html>
